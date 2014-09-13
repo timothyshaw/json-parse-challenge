@@ -48,7 +48,7 @@ class RecordJsonWriter(object):
             return False
         if len(entry_split) == 4:
             namesplit = entry_split[0].split(' ')
-            if len(namesplit) == 2 or len(namesplit) == 3:
+            if len(namesplit) >= 2:
                 return True
             else:
                 return False
