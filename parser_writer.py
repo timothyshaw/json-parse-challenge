@@ -1,5 +1,6 @@
-import re
 import json
+import os
+import re
 
 
 class RecordJsonWriter(object):
@@ -46,7 +47,8 @@ class RecordJsonWriter(object):
         if len(entry_split) < 4:
             return False
         if len(entry_split) == 4:
-            if len(entry_split[0].split(' ')) == 2:
+            namesplit = entry_split[0].split(' ')
+            if len(namesplit) == 2 or len(namesplit) == 3:
                 return True
             else:
                 return False
@@ -156,10 +158,16 @@ class RecordJsonWriter(object):
         return bool(_digits.search(string))
 
     def write_json_file(self, entries, errors):
+        entries_sorted = sorted(
+            entries,
+            key=lambda entry: (entry['lastname'], entry['firstname'])
+        )
+
         output = {
-            "entries": entries,
+            "entries": entries_sorted,
             "errors": errors
         }
+
         with open('output/result.out', 'w') as output_file:
             json.dump(output, output_file, indent=2, sort_keys=True)
 
