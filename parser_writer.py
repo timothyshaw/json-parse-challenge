@@ -4,6 +4,12 @@ import re
 
 
 class RecordJsonWriter(object):
+    """
+    Parses a file containing entries of people and their information.
+    Organizes the data according to a standard, then outputs it as valid json.
+    Keeps track of invalid lines and outputs that as part of the json.
+    """
+
     first_name = re.compile("^([a-zA-Z \.])+$")
     last_name = re.compile("^([a-zA-Z \.])*$")
     first_and_last = re.compile("^([a-zA-Z \.])+$")
