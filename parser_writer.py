@@ -4,12 +4,22 @@ import re
 
 
 class RecordJsonWriter(object):
-    "Takes an input file, parses it according to a standard, and outputs as valid JSON"
-    def __init__(self):
-        self.input_path = ''
-        self.entries = list()
-        self.errors = list()
-        self.phone_number_digit_requirement = 10
+    first_name = re.compile("^([a-zA-Z \.])+$")
+    last_name = re.compile("^([a-zA-Z \.])*$")
+    first_and_last = re.compile("^([a-zA-Z \.])+$")
+    phone_number = re.compile("^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}$")
+    zipcode = re.compile("^[\d]{5,5}$")
+    color = re.compile("^[a-zA-Z ]+$")
+
+    accepted_formats = [
+        [last_name, first_name, phone_number, color, zipcode],
+        [first_and_last, color, zipcode, phone_number],
+        [first_name, last_name, zipcode, phone_number, color]
+    ]
+
+    input_path = ''
+    entries = list()
+    errors = list()
 
     def load_input_file(self, filepath):
         self.input_path = filepath
@@ -27,135 +37,59 @@ class RecordJsonWriter(object):
         self.initialize()
 
     def parse_entry(self, entry):
-        if not self._entry_format_valid(entry):
-            return False
-        if not self._phone_number_digit_requirement_met(entry):
-            return False
+        entry_parts = entry.split(', ')
+        for format in self.accepted_formats:
+            if len(entry_parts) == len(format):
+                if self.entry_parts_match_format(entry_parts, format):
+                    firstname, lastname = self._get_first_name_last_name(entry_parts, format)
+                    entry_dict = {
+                        'color': self._get_color(entry_parts, format),
+                        'firstname': firstname,
+                        'lastname': lastname,
+                        'phonenumber': self._get_phone_number(entry_parts, format),
+                        'zipcode': self._get_zipcode(entry_parts, format)
+                    }
 
-        entry_dict = {
-            'color': self._get_color(entry),
-            'firstname': self._get_first_name(entry),
-            'lastname': self._get_last_name(entry),
-            'phonenumber': self._get_phone_number(entry),
-            'zipcode': self._get_zip_code(entry)
-        }
+                    return entry_dict
 
-        return entry_dict
+        return False
 
-    def _entry_format_valid(self, entry):
-        entry_split = entry.split(', ')
-        if len(entry_split) < 4:
-            return False
-        if len(entry_split) == 4:
-            namesplit = entry_split[0].split(' ')
-            if len(namesplit) >= 2:
-                return True
-            else:
+    def _get_first_name_last_name(self, entry_parts, format):
+        if len(entry_parts) == 4:
+            firstname = entry_parts[
+                format.index(self.first_and_last)
+            ].split(' ')[0]
+            lastname = entry_parts[
+                format.index(self.first_and_last)
+            ].split(' ')[-1]
+        else:
+            firstname = entry_parts[format.index(self.first_name)]
+            lastname = entry_parts[format.index(self.last_name)]
+
+        return (firstname.rstrip(), lastname.rstrip())
+
+    def _get_phone_number(self, entry_parts, format):
+        number = entry_parts[format.index(self.phone_number)]
+        number_without_punctuation = filter(lambda x: x.isdigit(), number)
+        formatted_number = "%s-%s-%s" % (
+            number_without_punctuation[0:3],
+            number_without_punctuation[3:6],
+            number_without_punctuation[6:10],
+        )
+        return formatted_number
+
+    def _get_color(self, entry_parts, format):
+        return entry_parts[format.index(self.color)].rstrip()
+
+    def _get_zipcode(self, entry_parts, format):
+        return entry_parts[format.index(self.zipcode)].rstrip()
+
+    def entry_parts_match_format(self, entry_parts, format):
+        for index, part in enumerate(entry_parts):
+            if not format[index].match(part):
                 return False
-        if len(entry_split) == 5:
-            return True
-        else:
-            return False
 
-    def _phone_number_digit_requirement_met(self, entry):
-        phone_number = self._get_phone_number(entry)
-        number_without_punctuation = filter(lambda x: x.isdigit(), phone_number)
-        if len(number_without_punctuation) == self.phone_number_digit_requirement:
-            return True
-        else:
-            return False
-
-    def _get_phone_number(self, entry):
-        if not self._entry_format_valid(entry):
-            return False
-        else:
-            entry_split = entry.split(', ')
-
-            position_2 = entry_split[2]
-            position_2 = filter(lambda x: x.isdigit(), position_2)
-
-            position_3 = entry_split[3]
-            position_3 = filter(lambda x: x.isdigit(), position_3)
-
-            if self._contains_digits(position_2) and len(position_2) > 5:
-                number = position_2
-            elif self._contains_digits(position_3) and len(position_3) > 5:
-                number = position_3
-
-            number_without_punctuation = filter(lambda x: x.isdigit(), number)
-            formatted_number = "%s-%s-%s" % (
-                number_without_punctuation[0:3],
-                number_without_punctuation[3:6],
-                number_without_punctuation[6:10],
-            )
-
-            return formatted_number.rstrip()
-
-    def _get_color(self, entry):
-        if not self._entry_format_valid(entry):
-            return False
-        else:
-            entry_split = entry.split(', ')
-
-            if len(entry_split) == 4:
-                color = entry_split[1]
-            else:
-                if not self._contains_digits(entry_split[-1]):
-                    color = entry_split[-1]
-                else:
-                    color = entry_split[3]
-
-            return color.rstrip()
-
-    def _get_first_name(self, entry):
-        if not self._entry_format_valid(entry):
-            return False
-        else:
-            entry_split = entry.split(', ')
-            if len(entry_split) == 4:
-                first_name = entry_split[0].split(' ')[0]
-            else:
-                if self._contains_digits(entry_split[-1]):
-                    first_name = entry_split[1]
-                else:
-                    first_name = entry_split[0]
-
-            return first_name.rstrip()
-
-    def _get_last_name(self, entry):
-        if not self._entry_format_valid(entry):
-            return False
-        else:
-            entry_split = entry.split(', ')
-            if len(entry_split) == 4:
-                last_name = entry_split[0].split(' ')[1]
-            else:
-                if self._contains_digits(entry_split[-1]):
-                    last_name = entry_split[0]
-                else:
-                    last_name = entry_split[1]
-
-            return last_name.rstrip()
-
-    def _get_zip_code(self, entry):
-        if not self._entry_format_valid(entry):
-            return False
-        else:
-            entry_split = entry.split(', ')
-
-            if len(entry_split) == 4:
-                zip_code = entry_split[2]
-            else:
-                if self._contains_digits(entry_split[-1]):
-                    zip_code = entry_split[-1]
-                else:
-                    zip_code = entry_split[2]
-
-            return zip_code.rstrip()
-
-    def _contains_digits(self, string):
-        _digits = re.compile('\d')
-        return bool(_digits.search(string))
+        return True
 
     def write_json_file(self, entries, errors):
         entries_sorted = sorted(
