@@ -33,14 +33,17 @@ class RecordJsonWriter(object):
     def output_json(self):
         with open(self.input_path, 'r') as input_file:
             for line_number, entry in enumerate(input_file):
-                parsed_entry = self.parse_entry(entry)
-                if parsed_entry:
-                    self.entries.append(parsed_entry)
-                else:
-                    self.errors.append(line_number)
+                self.process_entry(entry, line_number)
 
         self.write_json_file(self.entries, self.errors)
         self.initialize()
+
+    def process_entry(self, entry, line_number):
+        parsed_entry = self.parse_entry(entry)
+        if parsed_entry:
+            self.entries.append(parsed_entry)
+        else:
+            self.errors.append(line_number)
 
     def parse_entry(self, entry):
         entry_parts = entry.split(', ')
