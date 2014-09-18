@@ -29,6 +29,14 @@ Some lines may be invalid, but should not interfere with processing. If a line i
 The "entries" list in the json file should be sorted in ascending alphabetical order by (last name, first name).
 
 
+Solution
+====================
+
+My solution was to validate the various entry parts with regular expressions, and then make acceptable formats using lists comprised of those regular expressions. For each line, it loops through the accepted formats and returns False if it finds a part that doesn't match up. At this point, the line number of the improperly formatted entry is added to the "errors" list of the class. If it makes it through without finding a mismatch, then the entry is deemed to have correct formatting, and the entry is added to the "entries" list of the class.
+
+After all entries are processed, the entries are sorted, and output as JSON to the result.out file.
+
+
 To do
 ====================
 * Write more unit tests
